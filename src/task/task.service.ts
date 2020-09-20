@@ -1,49 +1,43 @@
-import { v4 as uuid } from 'uuid'
-
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { InjectRepository } from '@nestjs/typeorm'
 
 import { CreateTaskDto } from './dto/create-task.dto'
-import { ITask, ETaskStatus } from './task.interface'
+import { GetTasksFilterDto } from './dto/get-tasks-filter.dto'
+import { ETaskStatus } from './enums/task-status'
+import { Task } from './task.entity'
+import { TaskRepository } from './task.repository'
 
 @Injectable()
 export class TaskService {
-    private tasks: ITask[] = []
+    constructor (
+        @InjectRepository(TaskRepository)
+        private taskRepository: TaskRepository
+    ) {}
 
-    getAllTasks (): ITask[] {
-        return this.tasks
+    async getTasks (filterDto: GetTasksFilterDto): Promise<Task[]> {
+        return await this.taskRepository.getTasks(filterDto)
     }
 
-    getTaskById (id: string): ITask {
-        const found = this.tasks.find(task => task.id === id)
+    async getTaskById (id: number): Promise<Task> {
+        const found = await this.taskRepository.findOne(id)
         if (!found) {
             throw new NotFoundException(`Task with ID "${id}" not found`)
         }
         return found
     }
 
-    createTask (createTaskDto: CreateTaskDto): ITask {
-        const { title, description } = createTaskDto
-        const task: ITask = {
-            id: uuid(), title, description, status: ETaskStatus.OPEN
-        }
-
-        this.tasks.push(task)
-        return task
+    async createTask (createTaskDto: CreateTaskDto): Promise<Task> {
+        return await this.taskRepository.createTask(createTaskDto)
     }
 
-    deleteById (id: string): ITask[] {
-        this.getTaskById(id)
-        this.tasks = this.tasks.filter(task => task.id !== id)
-        return this.tasks
+    async deleteById (id: number): Promise<void> {
+        await this.getTaskById(id)
+        await this.taskRepository.delete({ id })
     }
 
-    updateStatusById (id: string, status: ETaskStatus): ITask[] {
-        this.getTaskById(id)
-        this.tasks.map(task => {
-            if (task.id === id) {
-                task.status = status
-            }
-        })
-        return this.tasks
+    async updateStatusById (id: number, status: ETaskStatus): Promise<Task> {
+        await this.getTaskById(id)
+        await this.taskRepository.update({ id }, { status })
+        return this.getTaskById(id)
     }
 }

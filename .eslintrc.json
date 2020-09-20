@@ -89,7 +89,9 @@
               "module": "always",
               "interface": "always",
               "dto": "always",
-              "pipe": "always"
+              "pipe": "always",
+              "entity": "always",
+              "repository": "always"
           }
       ],
       "import-helpers/order-imports": [
